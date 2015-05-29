@@ -7,7 +7,7 @@
 		<script src="{{ asset('js/compatibility.js') }}" type="text/javascript"></script>
 
         @if (Auth::user()->account->utf8_invoices)
-            <script src="{{ asset('vendor/pdfmake/build/pdfmake.min.js') }}" type="text/javascript"></script>
+            <script src="{{ asset('js/pdfmake.min.js') }}" type="text/javascript"></script>
             <script src="{{ asset('js/vfs_fonts.js') }}" type="text/javascript"></script>
         @endif
 
@@ -150,10 +150,10 @@
 		<thead>
 			<tr>
 				<th style="min-width:32px;" class="hide-border"></th>
-				<th style="min-width:160px">{{ trans('texts.item') }}</th>
-				<th style="width:100%">{{ trans('texts.description') }}</th>
-				<th style="min-width:120px">{{ trans('texts.unit_cost') }}</th>
-				<th style="{{ $account->hide_quantity ? 'display:none' : 'min-width:120px' }}">{{ trans('texts.quantity') }}</th>
+				<th style="min-width:160px">{{ $invoiceLabels['item'] }}</th>
+				<th style="width:100%">{{ $invoiceLabels['description'] }}</th>
+				<th style="min-width:120px">{{ $invoiceLabels['unit_cost'] }}</th>
+				<th style="{{ $account->hide_quantity ? 'display:none' : 'min-width:120px' }}">{{ $invoiceLabels['quantity'] }}</th>
 				<th style="min-width:120px;display:none;" data-bind="visible: $root.invoice_item_taxes.show">{{ trans('texts.tax') }}</th>
 				<th style="min-width:120px;">{{ trans('texts.line_total') }}</th>
 				<th style="min-width:32px;" class="hide-border"></th>
@@ -375,7 +375,7 @@
 			 {!! Button::normal(trans("texts.email_{$entityType}"))->withAttributes(array('id' => 'email_button', 'onclick' => 'onEmailClick()'))->appendIcon(Icon::create('send')) !!}
             @endif
 
-			@if ($invoice && $invoice->id && $entityType == ENTITY_INVOICE && !$invoice->is_recurring && !$invoice->isPaid())
+			@if ($invoice && $invoice->id && $entityType == ENTITY_INVOICE && !$invoice->is_recurring && $invoice->balance > 0)
 				{!! Button::primary(trans('texts.enter_payment'))->withAttributes(array('onclick' => 'onPaymentClick()'))->appendIcon(Icon::create('usd')) !!}		
 			@endif
 		@elseif ($invoice && $invoice->trashed() && !$invoice->is_deleted == '1')
@@ -1179,6 +1179,7 @@
 			@endif
 			self.invoice_items.push(itemModel);	
 			applyComboboxListeners();			
+            return itemModel;
 		}
 
         if (data) {
@@ -1522,13 +1523,14 @@
 
 	function ItemModel(data) {
 		var self = this;		
-		this.product_key = ko.observable('');
-		this.notes = ko.observable('');
-		this.cost = ko.observable(0);
-		this.qty = ko.observable(0);
+		self.product_key = ko.observable('');
+		self.notes = ko.observable('');
+		self.cost = ko.observable(0);
+		self.qty = ko.observable(0);
 		self.tax_name = ko.observable('');
 		self.tax_rate = ko.observable(0);
-		this.actionsVisible = ko.observable(false);
+		self.task_public_id = ko.observable('');
+        self.actionsVisible = ko.observable(false);
 		
 		self._tax = ko.observable();
 		this.tax = ko.computed({
@@ -1727,6 +1729,21 @@
             //}
 			model.invoice().custom_taxes1({{ $account->custom_invoice_taxes1 ? 'true' : 'false' }});
 			model.invoice().custom_taxes2({{ $account->custom_invoice_taxes2 ? 'true' : 'false' }});
+
+            @if (isset($tasks) && $tasks)
+                // move the blank invoice line item to the end
+                var blank = model.invoice().invoice_items.pop();
+                var tasks = {!! $tasks !!};
+                for (var i=0; i<tasks.length; i++) {
+                    var task = tasks[i];                    
+                    var item = model.invoice().addItem();
+                    item.notes(task.description);
+                    item.product_key(task.startTime);
+                    item.qty(task.duration);
+                    item.task_public_id(task.publicId);
+                }        
+                model.invoice().invoice_items.push(blank);            
+            @endif
 		@endif
 	@endif
 

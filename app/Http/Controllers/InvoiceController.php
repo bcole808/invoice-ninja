@@ -228,7 +228,7 @@ class InvoiceController extends BaseController
                 ];
             }
         }
-        
+
         $data = array(
             'isConverted' => $invoice->quote_invoice_id ? true : false,
             'showBreadcrumbs' => false,
@@ -327,7 +327,8 @@ class InvoiceController extends BaseController
                 'method' => 'POST',
                 'url' => 'invoices',
                 'title' => trans('texts.new_invoice'),
-                'client' => $client, );
+                'client' => $client,
+                'tasks' => Session::get('tasks') ? json_encode(Session::get('tasks')) : null);
         $data = array_merge($data, self::getViewModel());
 
         return View::make('invoices.edit', $data);
@@ -366,7 +367,9 @@ class InvoiceController extends BaseController
                 6 => 'Six months',
                 7 => 'Annually',
             ),
-            'recurringHelp' => $recurringHelp
+            'recurringHelp' => $recurringHelp,
+            'invoiceLabels' => Auth::user()->account->getInvoiceLabels(),
+
         ];
 
     }

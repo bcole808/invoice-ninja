@@ -20,6 +20,7 @@ use App\Models\PaymentTerm;
 use App\Models\Industry;
 use App\Models\Currency;
 use App\Models\Country;
+use App\Models\Task;
 
 use App\Ninja\Repositories\ClientRepository;
 
@@ -58,7 +59,7 @@ class ClientController extends BaseController
             ->addColumn('name', function ($model) { return link_to('clients/'.$model->public_id, $model->name); })
             ->addColumn('first_name', function ($model) { return link_to('clients/'.$model->public_id, $model->first_name.' '.$model->last_name); })
             ->addColumn('email', function ($model) { return link_to('clients/'.$model->public_id, $model->email); })
-            ->addColumn('created_at', function ($model) { return Utils::timestampToDateString(strtotime($model->created_at)); })
+            ->addColumn('clients.created_at', function ($model) { return Utils::timestampToDateString(strtotime($model->created_at)); })
             ->addColumn('last_login', function ($model) { return Utils::timestampToDateString(strtotime($model->last_login)); })
             ->addColumn('balance', function ($model) { return Utils::formatMoney($model->balance, $model->currency_id); })
             ->addColumn('dropdown', function ($model) {
@@ -112,13 +113,13 @@ class ClientController extends BaseController
         Utils::trackViewed($client->getDisplayName(), ENTITY_CLIENT);
 
         $actionLinks = [
-            ['label' => trans('texts.create_invoice'), 'url' => URL::to('invoices/create/'.$client->public_id)],
-            ['label' => trans('texts.enter_payment'), 'url' => URL::to('payments/create/'.$client->public_id)],
-            ['label' => trans('texts.enter_credit'), 'url' => URL::to('credits/create/'.$client->public_id)],
+            ['label' => trans('texts.create_task'), 'url' => '/tasks/create/'.$client->public_id],
+            ['label' => trans('texts.enter_payment'), 'url' => '/payments/create/'.$client->public_id],
+            ['label' => trans('texts.enter_credit'), 'url' => '/credits/create/'.$client->public_id],
         ];
 
         if (Utils::isPro()) {
-            array_unshift($actionLinks, ['label' => trans('texts.create_quote'), 'url' => URL::to('quotes/create/'.$client->public_id)]);
+            array_unshift($actionLinks, ['label' => trans('texts.create_quote'), 'url' => '/quotes/create/'.$client->public_id]);
         }
 
         $data = array(
@@ -128,6 +129,8 @@ class ClientController extends BaseController
             'credit' => $client->getTotalCredit(),
             'title' => trans('texts.view_client'),
             'hasRecurringInvoices' => Invoice::scope()->where('is_recurring', '=', true)->whereClientId($client->id)->count() > 0,
+            'hasQuotes' => Invoice::scope()->where('is_quote', '=', true)->whereClientId($client->id)->count() > 0,
+            'hasTasks' => Task::scope()->whereClientId($client->id)->count() > 0,
             'gatewayLink' => $client->getGatewayLink(),
         );
 

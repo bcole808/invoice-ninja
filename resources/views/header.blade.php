@@ -211,7 +211,18 @@
   }
 
 
-  $(function() {
+  // keep the token cookie valid to prevent token mismatch errors
+  function keepAlive() {
+    window.setTimeout(function() { 
+        $.get('{{ URL::to('/keep_alive') }}', function(data) {
+            keepAlive();
+        })
+    }, 1000 * 60 * 60);
+  }      
+
+  $(function() {    
+    keepAlive();    
+
     window.setTimeout(function() { 
         $(".alert-hide").fadeOut(500);
     }, 2000);
@@ -299,9 +310,7 @@
       <ul class="nav navbar-nav" style="font-weight: bold">
         {!! HTML::nav_link('dashboard', 'dashboard') !!}
         {!! HTML::menu_link('client') !!}
-        @if (Utils::isPro())
-          {!! HTML::menu_link('quote') !!}
-        @endif
+        {!! HTML::menu_link('task') !!}
         {!! HTML::menu_link('invoice') !!}
         {!! HTML::menu_link('payment') !!}
         {!! HTML::menu_link('credit') !!}
@@ -404,10 +413,6 @@
 <br/>
 <div class="container">		
 
-  @if (!isset($showBreadcrumbs) || $showBreadcrumbs)
-  {!! HTML::breadcrumbs() !!}
-  @endif
-
   @if (Session::has('warning'))
   <div class="alert alert-warning">{{ Session::get('warning') }}</div>
   @endif
@@ -425,6 +430,10 @@
 
   @if (Session::has('error'))
   <div class="alert alert-danger">{{ Session::get('error') }}</div>
+  @endif
+
+  @if (!isset($showBreadcrumbs) || $showBreadcrumbs)
+  {!! HTML::breadcrumbs() !!}
   @endif
 
   @yield('content')		
