@@ -195,11 +195,6 @@ class PaymentController extends BaseController
         $gateway = Omnipay::create($accountGateway->gateway->provider);
         $config = json_decode($accountGateway->config);
 
-        /*
-        $gateway->setSolutionType("Sole");
-        $gateway->setLandingPage("Billing");
-        */
-
         foreach ($config as $key => $val) {
             if (!$val) {
                 continue;
@@ -209,8 +204,8 @@ class PaymentController extends BaseController
             $gateway->$function($val);
         }
 
-        if (Utils::isNinjaDev()) {
-            $gateway->setTestMode(true);
+        if ($accountGateway->gateway->id == GATEWAY_DWOLLA && isset($_ENV['DWOLLA_KEY']) && isset($_ENV['DWOLLA_SECRET'])) {
+            $gateway->setKeySecret($_ENV['DWOLLA_KEY'], $_ENV['DWOLLA_SECRET']);
         }
 
         return $gateway;
@@ -449,6 +444,7 @@ class PaymentController extends BaseController
                 'message' => $affiliate->payment_subtitle,
                 'license' => $licenseKey,
                 'hideHeader' => true,
+                'productId' => $license->product_id
             ];
 
             $name = "{$license->first_name} {$license->last_name}";
