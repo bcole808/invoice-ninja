@@ -10,7 +10,7 @@ use View;
 use Validator;
 use stdClass;
 use URL;
-
+use Utils;
 use App\Models\Gateway;
 use App\Models\Account;
 use App\Models\AccountGateway;
@@ -186,7 +186,7 @@ class AccountGatewayController extends BaseController
             $gatewayId = GATEWAY_PAYPAL_EXPRESS;
         } elseif ($paymentType == PAYMENT_TYPE_BITCOIN) {
             $gatewayId = GATEWAY_BITPAY;
-        } elseif ($paymentType = PAYMENT_TYPE_DWOLLA) {
+        } elseif ($paymentType == PAYMENT_TYPE_DWOLLA) {
             $gatewayId = GATEWAY_DWOLLA;
         }
 
@@ -198,9 +198,14 @@ class AccountGatewayController extends BaseController
 
         $gateway = Gateway::findOrFail($gatewayId);
         $fields = $gateway->getFields();
+        $optional = array_merge(Gateway::$hiddenFields, Gateway::$optionalFields);
+
+        if (Utils::isNinja() && $gatewayId == GATEWAY_DWOLLA) {
+            $optional = array_merge($optional, ['key', 'secret']);
+        }
 
         foreach ($fields as $field => $details) {
-            if (!in_array($field, array_merge(Gateway::$hiddenFields, Gateway::$optionalFields))) {
+            if (!in_array($field, $optional)) {
                 if (strtolower($gateway->name) == 'beanstream') {
                     if (in_array($field, ['merchant_id', 'passCode'])) {
                         $rules[$gateway->id.'_'.$field] = 'required';
